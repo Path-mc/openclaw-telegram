@@ -1,11 +1,12 @@
 #!/bin/bash
 
-echo "Menyiapkan OpenClaw di Northflank..."
+echo "Menyiapkan OpenClaw Mode Hemat (512MB RAM) di Northflank..."
 
 # 1. Menyiapkan folder untuk Skill AI
 mkdir -p $HOME/.openclaw/workspace/skills/image_generator
+mkdir -p $HOME/.openclaw/workspace/skills/web_screenshot
 
-# 2. Merakit file openclaw.json secara dinamis (Mengambil dari Environment Variables Northflank)
+# 2. Merakit file openclaw.json secara dinamis (Browser DIMATIKAN)
 cat << EOF > $HOME/.openclaw/openclaw.json
 {
   "gateway": {
@@ -17,11 +18,7 @@ cat << EOF > $HOME/.openclaw/openclaw.json
     }
   },
   "browser": {
-    "enabled": true,
-    "executablePath": "/usr/bin/chromium",
-    "headless": true,
-    "noSandbox": true,
-    "viewport": { "width": 1280, "height": 720 }
+    "enabled": false
   },
   "channels": {
     "telegram": {
@@ -85,7 +82,7 @@ cat << EOF > $HOME/.openclaw/openclaw.json
     "restart": true,
     "ownerDisplay": "raw"
   },
-   "meta": {
+  "meta": {
     "lastTouchedVersion": "2026.3.28"
   }
 }
@@ -169,6 +166,34 @@ Ketika pengguna meminta untuk dibuatkan gambar, lukisan, atau foto, kamu WAJIB m
    \`openclaw message send --channel telegram --target <TARGET> --media $HOME/.openclaw/workspace/photo.png --force-document\`
 EOF
 
+# 4.5 Merakit Web Screenshot (Versi API Ringan)
+cat << 'EOF' > $HOME/.openclaw/workspace/screenshot_api.sh
+#!/bin/bash
+URL="$1"
+OUT="$2"
+if [ -z "$URL" ]; then exit 1; fi
+if [ -z "$OUT" ]; then OUT="$HOME/.openclaw/workspace/screenshot.png"; fi
+
+# Menggunakan API Publik thum.io via curl (0% RAM Usage)
+curl -s -L -o "$OUT" "https://image.thum.io/get/width/1280/crop/720/$URL"
+echo "SUKSES: $OUT"
+EOF
+chmod +x $HOME/.openclaw/workspace/screenshot_api.sh
+
+cat << EOF > $HOME/.openclaw/workspace/skills/web_screenshot/SKILL.md
+---
+name: web_screenshot_api
+description: Ambil screenshot website dengan cepat dan ringan tanpa browser internal.
+---
+# Web Screenshot API
+Jika pengguna meminta screenshot web:
+1. Ambil URL valid dari user.
+2. Jalankan perintah: \`$HOME/.openclaw/workspace/screenshot_api.sh "URL" "$HOME/.openclaw/workspace/screenshot.png"\`
+3. Kirim hasilnya: \`openclaw message send --channel telegram --target <TARGET> --media $HOME/.openclaw/workspace/screenshot.png --force-document\`
+EOF
+
 # 5. Bangunkan si Lobster di Port 8080!
-echo "Menyalakan OpenClaw Gateway..."
+echo "Menyalakan OpenClaw Gateway (dengan limit RAM 300MB)..."
+# Membatasi RAM Node.js agar tidak menyentuh limit 512MB
+export NODE_OPTIONS="--max-old-space-size=300"
 openclaw gateway
