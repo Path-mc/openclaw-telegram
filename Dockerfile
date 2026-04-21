@@ -1,21 +1,54 @@
-# Menggunakan mesin Node.js versi 24
-FROM node:24-bullseye-slim
+# Gunakan Node.js versi 20 yang stabil dan ringan
+FROM node:20-bullseye-slim
 
-# Menginstal OpenClaw secara global (sebagai root)
+# Matikan interaksi instalasi dan set environment
+ENV DEBIAN_FRONTEND=noninteractive \
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    HOME=/app \
+    NODE_TLS_REJECT_UNAUTHORIZED=0
+
+WORKDIR /app
+
+# Instal Chromium dan semua dependensinya agar screenshot tidak error
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    ca-certificates \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libglib2.0-0 \
+    libnss3 \
+    libpango-1.0-0 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    libxss1 \
+    libxtst6 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Instal OpenClaw versi terbaru
 RUN npm install -g openclaw@2026.3.28
 
-# Di image ini, user 'node' sudah punya UID 1000.
-# Kita langsung pakai saja tanpa buat baru.
-USER node
-ENV HOME=/home/node
-WORKDIR $HOME
+# Salin naskah start.sh ke dalam container
+COPY start.sh /app/start.sh
 
-# Menyalin start.sh ke folder home user node
-COPY --chown=node:node start.sh $HOME/start.sh
-RUN chmod +x $HOME/start.sh
+# Beri izin eksekusi penuh
+RUN chmod +x /app/start.sh && chmod -R 777 /app
 
-# Port standar HF
-EXPOSE 7860
+# Buka port standar (Northflank biasanya meroute port 8080)
+EXPOSE 8080
 
 # Jalankan naskah
-CMD ["./start.sh"]
+CMD ["/app/start.sh"]
