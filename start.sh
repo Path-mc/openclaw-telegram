@@ -84,6 +84,9 @@ cat << EOF > $HOME/.openclaw/openclaw.json
     "nativeSkills": "auto",
     "restart": true,
     "ownerDisplay": "raw"
+  },
+   "meta": {
+    "lastTouchedVersion": "2026.3.28"
   }
 }
 EOF
